@@ -1,29 +1,24 @@
-- hosts: webserver
+[root@controller playbooks]# pwd
+/root/playbooks
+[root@controller playbooks]# cat httpd.yaml
+---
+- name: This sets up an httpd webserver
+  hosts: ansibleclient01.local
   tasks:
-  - name: "httpd software installation"
-    package:
-      name: "httpd"
+  - name: Install apache packages 
+    yum:
+      name: httpd
       state: present
-
-
-  - name: "Creating web pages"
-    copy:
-      src: "index.html"
-          dest: "/var/www/html/index.html"
-    notify: restart service
-
-
-  handlers:
-  - name: restart service
+  - name: ensure httpd is running
     service:
-	  name: "httpd"
-	  state: restarted
-	  enabled: yes
-    register: restart
-  - debug:
-      var: restart.stdout
-
-  - firewalld:
-      port: "80/tcp"
+      name: httpd 
+      state: started
+  - name: Open port 80 for http access
+    firewalld:
+      service: http
+      permanent: true
       state: enabled
-      permanent: yes
+  - name: Restart the firewalld service to load in the firewall changes
+    service: 
+      name: firewalld 
+      state: restarted
