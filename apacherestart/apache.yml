@@ -1,16 +1,25 @@
-- hosts: test-servers
-  remote_user: nahmed
-  become: true
-  vars:
-    project_root: /var/www/html
-  tasks:
-  - name: Install Apache Webserver
-    yum: pkg=httpd state=latest
-  - name: Place the index file at project root
-    copy: src=index.html dest={{ project_root }}/index.html owner=apache group=apache mode=0644
-  - name: Enable Apache on system reboot
-    service: name=httpd enabled=yes
-    notify: restart apache
-  handlers:
-  - name: restart apache
-    service: name=httpd state=restarted
+---
+  - hosts: apache
+    sudo: yes
+    tasks:
+      - name: install apache2
+        apt: name=apache2 update_cache=yes state=latest
+
+      - name: enabled mod_rewrite
+        apache2_module: name=rewrite state=present
+        notify:
+          - restart apache2
+
+      - name: apache2 listen on port 8081
+        lineinfile: dest=/etc/apache2/ports.conf regexp="^Listen 80" line="Listen 8081" state=present
+        notify:
+          - restart apache2
+
+      - name: apache2 virtualhost on port 8081
+        lineinfile: dest=/etc/apache2/sites-available/000-default.conf regexp="^<VirtualHost \*:80>" line="<VirtualHost *:8081>" state=present
+        notify:
+          - restart apache2
+
+    handlers:
+      - name: restart apache2
+        service: name=apache2 state=restarted
